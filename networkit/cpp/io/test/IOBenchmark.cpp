@@ -15,6 +15,10 @@
 #include "../../auxiliary/Log.h"
 #include "../../auxiliary/Timer.h"
 #include "../METISGraphReader.h"
+//#include "../BinaryGraphReader.h"
+//#include "../BinaryGraphWriter.h"
+#include "../SNAPGraphReader.h" 
+#include "../SNAPGraphWriter.h" 
 
 #include "../RasterReader.h"
 #include "../../generators/quadtree/QuadtreePolarEuclid.h"
@@ -333,4 +337,51 @@ TEST_F(IOBenchmark, simulateDiseaseProgression) {
 	}
 }
 
+TEST_F(IOBenchmark, timeSNAPGraphReader) {
+
+	std::string path = "../input/roadNet-CA.txt";
+	std::string outpath = "../output/snap-roadNet-PA";
+	Aux::Timer runtime;
+
+	INFO("[SNAP BEGIN] reading graph: " , path);
+	runtime.start();
+	SNAPGraphReader reader(false);
+	Graph G = reader.read(path);
+	runtime.stop();
+	INFO("[SNAP DONE] reading graph " , runtime.elapsedTag());
+	
+	/*BinaryGraphWriter write;
+	write.write(G, "../output/bin_roadNet-PA"); */
+	runtime.start();
+	SNAPGraphWriter writer;
+	INFO("[SNAP BEGIN] writing graph: " , outpath);
+	writer.write(G, outpath);
+	runtime.stop();
+	INFO("[SNAP DONE] writing graph " , runtime.elapsedTag());
+	
+	EXPECT_TRUE(! G.isEmpty());
+}
+
+/*TEST_F(IOBenchmark, timeBinaryGraph) {
+	
+	std::string outpath = "../output/bin_roadNet-PA";
+	std::string path = "../input/bin_roadNet-PA";
+	Aux::Timer runtime;
+	bool directed = false;
+
+	INFO("[BEGIN] reading graph: " , path);
+	runtime.start();
+	BinaryGraphReader reader(directed);
+	Graph G = reader.read(path);
+	runtime.stop();
+	INFO("[DONE] reading graph " , runtime.elapsedTag());
+	EXPECT_TRUE(! G.isEmpty());
+
+	runtime.start();
+	BinaryGraphWriter writer;
+	INFO("[BEGIN] writing graph: " , outpath);
+	writer.write(G, outpath);
+	runtime.stop();
+	INFO("[DONE] writing graph " , runtime.elapsedTag());
+}*/
 } /* namespace NetworKit */

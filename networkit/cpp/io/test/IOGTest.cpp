@@ -10,6 +10,8 @@
 #include <fstream>
 #include <unordered_set>
 #include <vector>
+#include <chrono>
+#include <iostream>
 
 #include "../METISGraphReader.h"
 #include "../METISGraphWriter.h"
@@ -39,6 +41,8 @@
 #include "../BinaryEdgeListPartitionWriter.h"
 #include "../BinaryEdgeListPartitionReader.h"
 #include "../../generators/ErdosRenyiGenerator.h"
+#include "../BinaryGraphReader.h"
+#include "../BinaryGraphWriter.h"
 
 #include "../../community/GraphClusteringTools.h"
 #include "../../auxiliary/Log.h"
@@ -785,6 +789,48 @@ TEST_F(IOGTest, testKONECTGraphReader){
 	ASSERT_EQ(G.numberOfNodes() , 128);
 	ASSERT_EQ(G.weight(0,1), 1.261404);
 	ASSERT_EQ(G.weight(127, 48), 0.03050447);
+}
+
+TEST_F(IOGTest, BinaryGraphReader) {
+	bool directed = true;
+	/*BinaryGraphReader reader(directed);
+	Graph G = reader.read("../input/binary_konect");
+
+	ASSERT_EQ(G.numberOfEdges(),2137);
+	ASSERT_EQ(G.numberOfNodes(),128); 
+	DEBUG("run test 1");
+
+	BinaryGraphReader reader2(!directed);
+	Graph G2 = reader2.read("../input/binary_tiny01");
+	EXPECT_EQ(G2.numberOfNodes(), 7);
+	EXPECT_EQ(G2.numberOfEdges(), 11);
+	DEBUG("run test 2"); */
+
+	BinaryGraphReader reader3 (directed);
+	Graph G3 = reader3.read("../input/binary_wiki");
+	EXPECT_EQ(G3.numberOfNodes(), 7115);
+	EXPECT_EQ(G3.numberOfEdges(), 103689);
+	DEBUG("run test 3");
+	
+}
+
+TEST_F(IOGTest, BinaryGraphWriter) {
+	/*KONECTGraphReader reader;
+	Graph G = reader.read("../input/foodweb-baydry.konect");	
+	BinaryGraphWriter writer;
+	writer.write(G, "../output/binary_konect");
+	*/
+
+	BinaryGraphWriter writer2;
+	SNAPGraphReader reader2(true);
+	Graph G2 = reader2.read("../input/wiki-Vote.txt");
+	writer2.write(G2, "../output/binary_wiki");
+		
+	/*METISGraphReader reader3;
+	std::string path = "../input/tiny_01.graph";
+	Graph G3 = reader3.read(path);
+	writer.write(G3, "../output/binary_tiny01");
+	*/
 }
 
 } /* namespace NetworKit */
