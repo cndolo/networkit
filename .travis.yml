@@ -11,114 +11,182 @@ env:
 
 matrix:
   include:
-    - name: macOS 10.14, Apple Clang
+    - name: "macOS 10.14: Apple Clang"
       env:
         - CC=cc
         - CXX=c++
+        - CACHE_NAME=OSX_10_14_APPLE_CLANG
       os: osx
-      osx_image: xcode10.2
-      sudo: false
-      addons:
-        homebrew:
-          packages:
-            - libomp
+      osx_image: xcode10.3
+      workspaces:
+        create:
+          name: brew_cache_14
+          paths: &cache_paths
+            - $HOME/Library/Caches/Homebrew
+            - /usr/local/Homebrew
+            - $HOME/local_bottle_metadata
+      cache: &cache_dirs
+        directories:
+          - $HOME/.cache
+          - $HOME/Library/Caches/Homebrew
+          - /usr/local/Homebrew
+          - $HOME/local_bottle_metadata
+      before_cache: &before_cache_osx |
+        if [ -e "$(brew --repository)/Library/Taps/homebrew/homebrew-cask/homebrew-cask" ]; then
+            rm -rf "$(brew --repository)/Library/Taps/homebrew/homebrew-cask/homebrew-cask"
+        fi
+        brew_cache_cleanup
+      before_install: |
+        source travis_config.sh
+        update_and_install_packages
+        brew_cache_cleanup
 
-    - name: macOS 10.14, llvm 8
+    - name: "macOS 10.14: llvm 9"
       env:
-        - CC=/usr/local/opt/llvm@8/bin/clang
-        - CXX=/usr/local/opt/llvm@8/bin/clang++
+        - CC=/usr/local/opt/llvm@9/bin/clang
+        - CXX=/usr/local/opt/llvm@9/bin/clang++
+        - CACHE_NAME=OSX_10_14_LLVM9
       os: osx
-      osx_image: xcode10.2
-      sudo: false
-      addons:
-        homebrew:
-          packages:
-            - llvm@8
-            - libomp
+      osx_image: xcode10.3
+      workspaces:
+          use: brew_cache_14
+      cache: *cache_dirs
+      before_cache: *before_cache_osx
+      before_install: |
+        source travis_config.sh
+        update_and_install_packages llvm@9
+        brew_cache_cleanup
 
-    - name: macOS 10.14, GCC 8
+    - name: "macOS 10.14: llvm 4"
       env:
-        - CC=/usr/local/opt/gcc@8/bin/gcc-8
-        - CXX=/usr/local/opt/gcc@8/bin/g++-8
+        - CC=/usr/local/opt/llvm@4/bin/clang
+        - CXX=/usr/local/opt/llvm@4/bin/clang++
+        - CACHE_NAME=OSX_10_14_LLVM4
       os: osx
-      osx_image: xcode10.2
-      sudo: false
-      addons:
-        homebrew:
-          packages:
-            - gcc@8
-      before_install:
-        - brew link gcc@8
+      osx_image: xcode10.3
+      workspaces:
+          use: brew_cache_14
+      cache: *cache_dirs
+      before_cache: *before_cache_osx
+      before_install: |
+        source travis_config.sh
+        update_and_install_packages llvm@4
+        brew_cache_cleanup
 
-    - name: macOS 10.14, Apple Clang, non-monolith
+    - name: "macOS 10.14: GCC 9"
+      env:
+        - CC=/usr/local/opt/gcc/bin/gcc-9
+        - CXX=/usr/local/opt/gcc/bin/g++-9
+        - CACHE_NAME=OSX_10_14_GCC9
+      os: osx
+      osx_image: xcode10.3
+      workspaces:
+          use: brew_cache_14
+      cache: *cache_dirs
+      before_cache: *before_cache_osx
+      before_install: |
+        source travis_config.sh
+        update_and_install_packages gcc@9
+        brew_cache_cleanup
+
+    - name: "macOS 10.14: GCC 6"
+      env:
+        - CC=/usr/local/opt/gcc@6/bin/gcc-6
+        - CXX=/usr/local/opt/gcc@6/bin/g++-6
+        - CACHE_NAME=OSX_10_14_GCC6
+      os: osx
+      osx_image: xcode10.3
+      workspaces:
+          use: brew_cache_14
+      cache: *cache_dirs
+      before_cache: *before_cache_osx
+      before_install: |
+        source travis_config.sh
+        update_and_install_packages gcc@6
+        brew_cache_cleanup
+
+    - name: "macOS 10.12: Apple Clang"
       env:
         - CC=cc
         - CXX=c++
+        - CACHE_NAME=OSX_10_12_APPLE_CLANG
       os: osx
-      osx_image: xcode10.2
-      sudo: false
-      addons:
-        homebrew:
-          packages:
-            - libomp
+      osx_image: xcode8.3
+      workspaces:
+        create:
+          name: brew_cache_12
+          paths: *cache_paths
+      cache: *cache_dirs
+      before_cache: *before_cache_osx
+      before_install: |
+        source travis_config.sh
+        update_and_install_packages python3
+        brew_cache_cleanup
+
+    - name: "macOS 10.12: Apple Clang, non-monolith"
+      env:
+        - CC=cc
+        - CXX=c++
+        - CACHE_NAME=OSX_10_12_APPLE_CLANG
+      os: osx
+      osx_image: xcode8.3
+      workspaces:
+        use: brew_cache_12
+      cache: *cache_dirs
       script:
         - $CXX --version
         - mkdir build_non_monolith && cd "$_"
         - cmake -DNETWORKIT_MONOLITH=OFF -DNETWORKIT_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE=Debug ..
         - make -j2
         - ctest -V
+      before_cache: *before_cache_osx
+      before_install: |
+        source travis_config.sh
+        update_and_install_packages python3
+        brew_cache_cleanup
 
-    - name: macOS 10.13, llvm 8
+    - name: "macOS 10.12: llvm 4"
       env:
-        - CC=/usr/local/opt/llvm@8/bin/clang
-        - CXX=/usr/local/opt/llvm@8/bin/clang++
+        - CC=/usr/local/opt/llvm@4/bin/clang
+        - CXX=/usr/local/opt/llvm@4/bin/clang++
+        - CACHE_NAME=OSX_10_12_LLVM4
       os: osx
-      osx_image: xcode10.1
-      sudo: false
-      addons:
-        homebrew:
-          packages:
-            - llvm@8
-            - libomp
-          update: true
+      osx_image: xcode8.3
+      workspaces:
+        use: brew_cache_12
+      cache: *cache_dirs
+      before_cache: *before_cache_osx
+      before_install: |
+        source travis_config.sh
+        update_and_install_packages llvm@4 python3
+        brew_cache_cleanup
 
-    - name: macOS 10.13, GCC 8
+    - name: "macOS 10.12: GCC 6"
       env:
-        - CC=/usr/local/opt/gcc@8/bin/gcc-8
-        - CXX=/usr/local/opt/gcc@8/bin/g++-8
+        - CC=/usr/local/opt/gcc@6/bin/gcc-6
+        - CXX=/usr/local/opt/gcc@6/bin/g++-6
+        - CACHE_NAME=OSX_10_12_GCC6
       os: osx
-      osx_image: xcode10.1
-      sudo: false
-      addons:
-        homebrew:
-          packages:
-            - gcc@8
-      before_install:
-        - brew link gcc@8
+      osx_image: xcode8.3
+      workspaces:
+        use: brew_cache_12
+      cache: *cache_dirs
+      before_cache: *before_cache_osx
+      before_install: |
+        source travis_config.sh
+        update_and_install_packages gcc@6 python3
+        brew_cache_cleanup
 
-    - name: macOS 10.13, Apple Clang
-      env:
-        - CC=cc
-        - CXX=c++
-      os: osx
-      osx_image: xcode10.1
-      sudo: false
-      addons:
-        homebrew:
-          packages:
-            - libomp
-          update: true
-
-    # Test with sanitizers.
-    - name: "Linux, GCC 5: Core build, sanitizers, coverage"
+    # Test with sanitizers, and upload coverage results to coveralls.
+    - name: "Linux: Core build, sanitizers, coverage"
       compiler: gcc
       os: linux
       dist: xenial
-      addons: &gcc5
+      addons:
         apt:
           packages:
             - python3-pip
-            - python3.5-venv
+            - python3-venv
       script:
         - python3 -m venv pyenv && . pyenv/bin/activate
         - pip3 install --upgrade pip
@@ -131,116 +199,134 @@ matrix:
         - cd ..
         - coveralls -E ".*test/.*" -E ".*CMakeFiles.*" --exclude extlibs --exclude pyenv --exclude scripts --root .
 
-    - name: Linux, GCC 8
+    - name: "Linux: GCC 9"
       env:
-        - CC=gcc-8
-        - CXX=g++-8
+        - CC=gcc-9
+        - CXX=g++-9
       os: linux
       dist: xenial
-      addons: &gcc8
+      addons: &gcc9
         apt:
           sources:
-            - ubuntu-toolchain-r-test
+            - sourceline: 'ppa:ubuntu-toolchain-r/test'
           packages:
-            - g++-8
+            - g++-9
             - python3-pip
-            - python3.5-venv
+            - python3-venv
+      before_install: &gcc9bi
+        - sudo apt-get install gcc-9 -y
 
-    - name: Linux, GCC 4.9
+    - name: "Linux: GCC 4.9"
       env:
         - CC=gcc-4.9
         - CXX=g++-4.9
       os: linux
       dist: xenial
-      sudo: false
       addons:
         apt:
           sources:
-            - ubuntu-toolchain-r-test
+            - sourceline: 'ppa:ubuntu-toolchain-r/test'
           packages:
             - cmake
             - g++-4.9
             - python3-pip
-            - python3.5-venv
+            - python3-venv
 
-    - name: Linux, Clang 3.8
+    - name: "Linux: Clang 8"
+      env:
+        - CC=clang-8
+        - CXX=clang++-8
+      os: linux
+      dist: xenial
+      addons:
+        apt:
+          sources:
+            - 'ubuntu-toolchain-r-test'
+            - 'llvm-toolchain-xenial-8'
+          packages:
+            - clang-8
+            - libiomp-dev
+            - python3-pip
+            - python3-venv
+      before_install:
+        - sudo apt-get install clang-8 -y
+
+    - name: "Linux: Clang 3.8"
       env:
         - CC=clang-3.8
         - CXX=clang++-3.8
       os: linux
       dist: xenial
-      sudo: false
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
           packages:
-            - g++-5
             - clang-3.8
             - libiomp-dev
             - python3-pip
-            - python3.5-venv
+            - python3-venv
+      before_install:
+        - sudo apt-get install clang-3.8 -y
 
-    # Test more exotic builds only on Linux.
-    - name: "Linux, GCC 8: Core build, debugging"
+    - name: "Linux: GCC 9, Core build, debugging"
       env:
-        - CC=gcc-8
-        - CXX=g++-8
+        - CC=gcc-9
+        - CXX=g++-9
       os: linux
       dist: xenial
-      addons: *gcc8
+      addons: *gcc9
       script: &script_cpp_only
         - $CXX --version
         - mkdir debug_test && cd "$_"
         - cmake -DNETWORKIT_BUILD_TESTS=ON -DNETWORKIT_MONOLITH=$MONOLITH -DNETWORKIT_CXX_STANDARD=$CXX_STANDARD -DNETWORKIT_WARNINGS=ON -DCMAKE_BUILD_TYPE=Debug ..
         - make -j2
         - ctest -V
+      before_install: &gcc9bi
 
-    - name: "Linux, GCC 8: Core build, non-monolithic"
+    - name: "Linux: GCC 9, Core build, non-monolithic"
       env:
-        - CC=gcc-8
-        - CXX=g++-8
+        - CC=gcc-9
+        - CXX=g++-9
         - MONOLITH=OFF
       os: linux
       dist: xenial
-      addons: *gcc8
+      addons: *gcc9
       script: *script_cpp_only
+      before_install: &gcc9bi
 
     # Finally, test conformance to newer versions of the C++ standard.
-    - name: "Linux, GCC 8: C++14 conformance"
+    - name: "Linux: GCC 9, C++14 conformance"
       env:
-        - CC=gcc-8
-        - CXX=g++-8
+        - CC=gcc-9
+        - CXX=g++-9
         - CXX_STANDARD=14
       os: linux
       dist: xenial
-      addons: *gcc8
+      addons: *gcc9
       script: *script_cpp_only
+      before_install: &gcc9bi
 
-    - name: "Linux, GCC 8: C++17 conformance"
+    - name: "Linux: GCC 9, C++17 conformance"
       env:
-        - CC=gcc-8
-        - CXX=g++-8
+        - CC=gcc-9
+        - CXX=g++-9
         - CXX_STANDARD=17
       os: linux
       dist: xenial
-      addons: *gcc8
+      addons: *gcc9
       script: *script_cpp_only
+      before_install: &gcc9bi
 
     - name: Documentation only
-      env:
-        - CC=gcc-8
-        - CXX=g++-8
+      compiler: gcc
       os: linux
       dist: xenial
       addons:
         apt:
-          sources:
-            - ubuntu-toolchain-r-test
           packages:
-            - g++-8
             - python3-pip
-            - python3.5-venv
+            - python3-venv
             - doxygen
       script:
         - set -e
