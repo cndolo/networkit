@@ -7,50 +7,54 @@
 
 #include <gtest/gtest.h>
 
-#include <fstream>
-#include <unordered_set>
-#include <vector>
+#include <array>
+#include <cassert>
 #include <chrono>
 #include <iostream>
+#include <fstream>
+#include <limits>
+#include <unordered_set>
+#include <vector>
 
-#include "../METISGraphReader.h"
-#include "../METISGraphWriter.h"
-#include "../PartitionWriter.h"
-#include "../PartitionReader.h"
-#include "../GraphIO.h"
-#include "../DotGraphWriter.h"
-#include "../DGSReader.h"
-#include "../EdgeListWriter.h"
-#include "../EdgeListPartitionReader.h"
-#include "../SNAPGraphReader.h"
-#include "../SNAPEdgeListPartitionReader.h"
-#include "../SNAPGraphWriter.h"
-#include "../EdgeListReader.h"
-#include "../KONECTGraphReader.h"
-#include "../GMLGraphWriter.h"
-#include "../EdgeListCoverReader.h"
-#include "../CoverReader.h"
-#include "../CoverWriter.h"
-#include "../GMLGraphReader.h"
-#include "../GraphToolBinaryReader.h"
-#include "../GraphToolBinaryWriter.h"
-#include "../ThrillGraphBinaryWriter.h"
-#include "../ThrillGraphBinaryReader.h"
-#include "../BinaryPartitionWriter.h"
-#include "../BinaryPartitionReader.h"
-#include "../BinaryEdgeListPartitionWriter.h"
-#include "../BinaryEdgeListPartitionReader.h"
-#include "../../generators/ErdosRenyiGenerator.h"
-#include "../BinaryGraphReader.h"
-#include "../BinaryGraphWriter.h"
+#include <networkit/io/METISGraphReader.hpp>
+#include <networkit/io/METISGraphWriter.hpp>
+#include <networkit/io/PartitionWriter.hpp>
+#include <networkit/io/PartitionReader.hpp>
+#include <networkit/io/GraphIO.hpp>
+#include <networkit/io/DotGraphWriter.hpp>
+#include <networkit/io/DGSReader.hpp>
+#include <networkit/io/EdgeListWriter.hpp>
+#include <networkit/io/EdgeListPartitionReader.hpp>
+#include <networkit/io/SNAPGraphReader.hpp>
+#include <networkit/io/SNAPEdgeListPartitionReader.hpp>
+#include <networkit/io/SNAPGraphWriter.hpp>
+#include <networkit/io/EdgeListReader.hpp>
+#include <networkit/io/KONECTGraphReader.hpp>
+#include <networkit/io/GMLGraphWriter.hpp>
+#include <networkit/io/EdgeListCoverReader.hpp>
+#include <networkit/io/CoverReader.hpp>
+#include <networkit/io/CoverWriter.hpp>
+#include <networkit/io/GMLGraphReader.hpp>
+#include <networkit/io/GraphToolBinaryReader.hpp>
+#include <networkit/io/GraphToolBinaryWriter.hpp>
+#include <networkit/io/ThrillGraphBinaryWriter.hpp>
+#include <networkit/io/ThrillGraphBinaryReader.hpp>
+#include <networkit/io/BinaryPartitionWriter.hpp>
+#include <networkit/io/BinaryPartitionReader.hpp>
+#include <networkit/io/BinaryEdgeListPartitionWriter.hpp>
+#include <networkit/io/BinaryEdgeListPartitionReader.hpp>
+#include <networkit/io/NetworkitBinaryGraph.hpp>
+#include <networkit/io/NetworkitBinaryReader.hpp>
+#include <networkit/io/NetworkitBinaryWriter.hpp>
+#include <networkit/generators/ErdosRenyiGenerator.hpp>
 
-#include "../../community/GraphClusteringTools.h"
-#include "../../auxiliary/Log.h"
-#include "../../community/ClusteringGenerator.h"
-#include "../../structures/Partition.h"
-#include "../../community/Modularity.h"
-#include "../../community/PLP.h"
-#include "../../dynamics/GraphDifference.h"
+#include <networkit/community/GraphClusteringTools.hpp>
+#include <networkit/auxiliary/Log.hpp>
+#include <networkit/community/ClusteringGenerator.hpp>
+#include <networkit/structures/Partition.hpp>
+#include <networkit/community/Modularity.hpp>
+#include <networkit/community/PLP.hpp>
+#include <networkit/dynamics/GraphDifference.hpp>
 
 namespace NetworKit {
 
@@ -790,47 +794,230 @@ TEST_F(IOGTest, testKONECTGraphReader){
 	ASSERT_EQ(G.weight(0,1), 1.261404);
 	ASSERT_EQ(G.weight(127, 48), 0.03050447);
 }
+TEST_F(IOGTest, testNetworkitBinaryTiny01) {
+	METISGraphReader reader2;
+	Graph G = reader2.read("input/tiny_01.graph");
+	NetworkitBinaryWriter writer;
 
-TEST_F(IOGTest, BinaryGraphReader) {
-	bool directed = true;
-	/*BinaryGraphReader reader(directed);
-	Graph G = reader.read("../input/binary_konect");
+	writer.write(G, "output/binary_tiny01");
+	ASSERT_TRUE(!G.isEmpty());
 
-	ASSERT_EQ(G.numberOfEdges(),2137);
-	ASSERT_EQ(G.numberOfNodes(),128); 
-	DEBUG("run test 1");
-
-	BinaryGraphReader reader2(!directed);
-	Graph G2 = reader2.read("../input/binary_tiny01");
-	EXPECT_EQ(G2.numberOfNodes(), 7);
-	EXPECT_EQ(G2.numberOfEdges(), 11);
-	DEBUG("run test 2"); */
-
-	BinaryGraphReader reader3 (directed);
-	Graph G3 = reader3.read("../input/binary_wiki");
-	EXPECT_EQ(G3.numberOfNodes(), 7115);
-	EXPECT_EQ(G3.numberOfEdges(), 103689);
-	DEBUG("run test 3");
-	
+	NetworkitBinaryReader reader;
+	Graph G2 = reader.read("output/binary_tiny01");
+	ASSERT_EQ(G2.numberOfNodes(), G.numberOfNodes());
+	ASSERT_EQ(G2.numberOfEdges(), G.numberOfEdges());
+	G.forNodes([&](node u){
+		G.forEdgesOf(u, [&](node v) {
+			ASSERT_TRUE(G2.hasEdge(u,v));
+		});
+	});
 }
 
-TEST_F(IOGTest, BinaryGraphWriter) {
-	/*KONECTGraphReader reader;
-	Graph G = reader.read("../input/foodweb-baydry.konect");	
-	BinaryGraphWriter writer;
-	writer.write(G, "../output/binary_konect");
-	*/
+TEST_F(IOGTest, testNetworkitBinaryKonect) {
+	KONECTGraphReader reader2;
+	Graph G = reader2.read("input/foodweb-baydry.konect");
+	NetworkitBinaryWriter writer;
 
-	BinaryGraphWriter writer2;
-	SNAPGraphReader reader2(true);
-	Graph G2 = reader2.read("../input/wiki-Vote.txt");
-	writer2.write(G2, "../output/binary_wiki");
-		
-	/*METISGraphReader reader3;
-	std::string path = "../input/tiny_01.graph";
-	Graph G3 = reader3.read(path);
-	writer.write(G3, "../output/binary_tiny01");
-	*/
+	writer.write(G, "output/binary_konect");
+	ASSERT_TRUE(!G.isEmpty());
+
+	NetworkitBinaryReader reader;
+	Graph G2 = reader.read("output/binary_konect");
+	ASSERT_EQ(G2.numberOfEdges(), G.numberOfEdges());
+	ASSERT_EQ(G2.numberOfNodes(), G.numberOfNodes());
+	G.forNodes([&](node u){
+		G.forEdgesOf(u, [&](node v) {
+			ASSERT_TRUE(G2.hasEdge(u,v));
+		});
+	});
+}
+
+TEST_F(IOGTest, testNetworkitBinaryJazz) {
+	METISGraphReader reader2;
+	Graph G = reader2.read("input/jazz.graph");
+
+	NetworkitBinaryWriter writer;
+	writer.write(G, "output/binary_jazz");
+	ASSERT_TRUE(!G.isEmpty());
+
+	NetworkitBinaryReader reader;
+	Graph G2 = reader.read("output/binary_jazz");
+	ASSERT_EQ(G2.numberOfEdges(), G.numberOfEdges());
+	ASSERT_EQ(G2.numberOfNodes(), G.numberOfNodes());
+	G.forNodes([&](node u){
+		G.forEdgesOf(u, [&](node v) {
+			ASSERT_TRUE(G2.hasEdge(u,v));
+		});
+	});
+}
+
+TEST_F(IOGTest, testNetworkitBinaryWiki) {
+	bool directed = true;
+	SNAPGraphReader reader2(directed);
+	Graph G = reader2.read("input/wiki-Vote.txt");
+	NetworkitBinaryWriter writer;
+
+	writer.write(G, "output/binary_wiki");
+	ASSERT_TRUE(!G.isEmpty());
+
+	NetworkitBinaryReader reader;
+	Graph G2 = reader.read("output/binary_wiki");
+	ASSERT_EQ(G2.numberOfEdges(), G.numberOfEdges());
+	ASSERT_EQ(G2.numberOfNodes(), G.numberOfNodes());
+	G.forNodes([&](node u){
+		G.forEdgesOf(u, [&](node v) {
+			ASSERT_TRUE(G2.hasEdge(u,v));
+		});
+	});
+}
+
+TEST_F(IOGTest, testNetworkitBinarySignedWeights) {
+
+	Graph G(10, true, false);
+	int64_t weight = -1;
+	for(count n = 0; n < G.numberOfNodes(); n++) {
+		if(n != G.numberOfNodes()-1)
+			G.addEdge(n, n+1, weight++);
+	}
+	NetworkitBinaryWriter writer(32, NetworkitBinaryWeights::autoDetect);
+	writer.write(G, "output/binarySigned");
+
+	NetworkitBinaryReader reader;
+	Graph G2 = reader.read("output/binarySigned");
+	G.forNodes([&](node u){
+		G.forEdgesOf(u, [&](node v) {
+			ASSERT_TRUE(G2.hasEdge(u,v));
+			ASSERT_EQ(G.weight(u,v), G2.weight(u,v));
+		});
+	});
+}
+
+TEST_F(IOGTest, testNetworkitBinaryFloatWeights) {
+
+	Graph G(10, true, false);
+	float weight = 987.654f;
+	for(count n = 0; n < G.numberOfNodes(); n++) {
+		if(n != G.numberOfNodes()-1)
+			G.addEdge(n, n+1, weight++);
+	}
+	NetworkitBinaryWriter writer(32, NetworkitBinaryWeights::autoDetect);
+	writer.write(G, "output/binaryFloats");
+
+	NetworkitBinaryReader reader;
+	Graph G2 = reader.read("output/binaryFloats");
+	G.forNodes([&](node u){
+		G.forEdgesOf(u, [&](node v) {
+			ASSERT_TRUE(G2.hasEdge(u,v));
+			ASSERT_EQ(G.weight(u,v), G2.weight(u,v));
+		});
+	});
+}
+
+TEST_F(IOGTest, testNetworkitBinaryUndirectedSelfLoops) {
+
+	Graph G(5, false, false);
+	G.addEdge(0,0);
+	G.addEdge(1,1);
+	G.addEdge(2,2);
+	G.addEdge(3,3);
+	G.addEdge(4,4);
+	NetworkitBinaryWriter writer;
+	writer.write(G, "output/loops");
+	NetworkitBinaryReader reader;
+	Graph G2 = reader.read("output/loops");
+	ASSERT_EQ(G.numberOfSelfLoops(), G2.numberOfSelfLoops());
+}
+
+TEST_F(IOGTest, testNetworkitBinaryDirectedSelfLoops) {
+
+	Graph G(5, false, true);
+	G.addEdge(0,0);
+	G.addEdge(1,1);
+	G.addEdge(2,2);
+	G.addEdge(3,3);
+	G.addEdge(4,4);
+	NetworkitBinaryWriter writer;
+	writer.write(G, "output/loops");
+	NetworkitBinaryReader reader;
+	Graph G2 = reader.read("output/loops");
+	ASSERT_EQ(G.numberOfSelfLoops(), G2.numberOfSelfLoops());
+}
+
+TEST_F(IOGTest, testNetworkitBinaryVarInt) {
+	std::array<uint8_t, 10> buffer;
+
+	// write defined values into buffer
+	{
+		uint8_t i = 0;
+		for(auto& x : buffer)
+			x = i++;
+	}
+
+	std::mt19937_64 gen{1};
+
+	uint64_t checked_bits = 0;
+
+	for (int bits = 0; bits < 64; ++bits) {
+		auto min = uint64_t(1) << bits;
+		auto max = 2*min - 1;
+
+		// special cases
+		if (bits == 0) {
+			min = 0;
+			max = 0;
+		} else if (bits == 64) {
+			max = std::numeric_limits<uint64_t>::max();
+		}
+
+		std::uniform_int_distribution<uint64_t> distr{min, max};
+
+		const auto nSamples = std::min<size_t>(10 * max + 2, 1000);
+
+		for (size_t i = 0; i < nSamples; ++i) {
+			// first two iterations test min/max values, all other random values
+			const auto orig = [&] {
+				if (i == 0) return min;
+				if (i == 1) return max;
+				return distr(gen);
+			}();
+
+			uint64_t valueRead;
+			const auto bytesWritten = nkbg::varIntEncode(orig, buffer.data());
+			const auto bytesRead    = nkbg::varIntDecode(buffer.data(), valueRead);
+
+			ASSERT_EQ(bytesWritten, bytesRead) << "bits=" << bits << ", i=" << i;
+			ASSERT_EQ(valueRead, orig)         << "bits=" << bits << ", i=" << i;
+			ASSERT_GT(buffer[bytesWritten-1], 0) << "bits=" << bits << ", i=" << i;
+
+			for(size_t j = bytesWritten; j < buffer.size(); ++j)
+				ASSERT_EQ(buffer[j], j);
+
+			checked_bits |= orig;
+		}
+	}
+
+	// make sure we touched each bit at least once
+	ASSERT_EQ(checked_bits, std::numeric_limits<uint64_t>::max());
+
+}
+
+TEST_F(IOGTest, testNetworkitBinaryZigzag) {
+	std::mt19937_64 gen(1);
+	std::uniform_int_distribution<uint64_t> distr(0, (std::numeric_limits<uint64_t>::max() >> 1) - 1);
+
+	for(int i = 0; i < 10000; ++i) {
+		auto check = [] (int64_t value) {
+			const auto encoded = nkbg::zigzagEncode(value);
+			const auto decoded = nkbg::zigzagDecode(encoded);
+
+			ASSERT_EQ(value, decoded);
+			ASSERT_LE(encoded, 2u * static_cast<uint64_t>(std::abs(value)));
+		};
+
+		const auto x = distr(gen);
+		check(x);
+		check(-1 * x);
+	}
 }
 
 } /* namespace NetworKit */

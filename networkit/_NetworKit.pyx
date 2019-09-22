@@ -357,6 +357,8 @@ cdef extern from "<networkit/graph/Graph.hpp>":
 		void DFSEdgesFrom[Callback](node r, Callback c) except +
 		bool_t checkConsistency() except +
 		_Graph subgraphFromNodes(unordered_set[node] nodes, bool_t includeOutNeighbors, bool_t includeInNeighbors) except +
+		_OutNeighborRange neighborRange(node u) except +
+		_InNeighborRange inNeighborRange(node u) except +
 
 cdef cppclass EdgeCallBackWrapper:
 	void* callback
@@ -418,7 +420,28 @@ cdef cppclass NodePairCallbackWrapper:
 		if (error):
 			throw_runtime_error(message)
 
+cdef extern from "<networkit/graph/Graph.hpp>":
+
+	cdef cppclass _NeighborIterator "NetworKit::Graph::NeighborIterator":
+		_NeighborIterator operator++() except +
+		_NeighborIterator operator++(int) except +
+		bool_t operator!=(const _NeighborIterator) except +
+		node operator*() except +
+
+cdef extern from "<networkit/graph/Graph.hpp>":
+
+	cdef cppclass _OutNeighborRange "NetworKit::Graph::OutNeighborRange":
+		_NeighborIterator begin() except +
+		_NeighborIterator end() except +
+
+cdef extern from "<networkit/graph/Graph.hpp>":
+
+	cdef cppclass _InNeighborRange "NetworKit::Graph::InNeighborRange":
+		_NeighborIterator begin() except +
+		_NeighborIterator end() except +
+
 cdef class Graph:
+
 	""" An undirected graph (with optional weights) and parallel iterator methods.
 
 		Graph(n=0, weighted=False, directed=False)
@@ -1347,6 +1370,39 @@ cdef class Graph:
 			nnodes.insert(node)
 		return Graph().setThis(self._this.subgraphFromNodes(nnodes, includeOutNeighbors, includeInNeighbors))
 
+	def iterNeighbors(self, u):
+		"""
+		Wrapper class to iterate over a range of the neighbors of a node within
+		a for loop.
+		Parameters
+		----------
+		u : Node
+
+		Returns
+		-------
+		List of a node u's neighbours
+		"""
+		it = self._this.neighborRange(u).begin()
+		while it != self._this.neighborRange(u).end():
+			yield dereference(it)
+			preincrement(it)
+
+	def iterInNeighbors(self, u):
+		"""
+		Wrapper class to iterate over a range of the in neighbours of a node within
+		a for loop.
+		Parameters
+		----------
+		u : Node
+
+		Returns
+		-------
+		List of a node u's in neighbours
+		"""
+		it = self._this.inNeighborRange(u).begin()
+		while it != self._this.inNeighborRange(u).end():
+			yield dereference(it)
+			preincrement(it)
 
 cdef extern from "<networkit/distance/STSP.hpp>":
 	cdef cppclass _STSP "NetworKit::STSP"(_Algorithm):
@@ -5823,6 +5879,13 @@ cdef class ConnectedComponents(Algorithm):
 		return (<_ConnectedComponents*>(self._this)).componentOfNode(v)
 
 	def getComponentSizes(self):
+		""" Get the component sizes.
+
+		Returns
+		------
+		map:
+			The map from component to size.
+		"""
 		return (<_ConnectedComponents*>(self._this)).getComponentSizes()
 
 	def getComponents(self):
@@ -7293,18 +7356,31 @@ cdef extern from "<networkit/centrality/Closeness.hpp>":
 
 cdef class Closeness(Centrality):
 	"""
-		Closeness(G, normalized=True, variant=ClosenessVariant::standard/checkConnectdedness=True)
+		Closeness(G, normalized, bool checkConnectdedness)
+		Closeness(G, normalized, networkit.centrality.ClosenessVariant variant)
 
 		Constructs the Closeness class for the given Graph `G`. If the Closeness scores should not be normalized,
-  		set `normalized` to False. The run() method takes O(nm) time, where n is the number
-	 	 of nodes and m is the number of edges of the graph. NOTICE: the graph has to be connected.
+		set `normalized` to False. The run() method takes O(nm) time, where n is the number
+		of nodes and m is the number of edges of the graph.
 
-	 	Parameters
-	 	----------
-	 	G : networkit.Graph
-	 		The graph.
-	 	normalized : bool, optional
-	 		Set this parameter to False if scores should not be normalized into an interval of [0,1]. Normalization only for unweighted graphs.
+		Parameters
+		----------
+		G : networkit.Graph
+			The graph.
+		normalized : bool
+			Set this parameter to False if scores should not be normalized into an interval of [0,1].
+			Normalization only works for unweighted graphs.
+		checkConnectdedness : bool
+			Set this parameter to True to also check if the graph is connected before computing closeness.
+			Set this parameter to False to not check if the graph is connected (note: the standard definition
+			of closeness works for connected graphs, choose this if the input graph is known to be connected).
+		ClosenessVariant : networkit.centrality.ClosenessVariant
+			Set this parameter to networkit.centrality.ClosenessVariant.Standard to use the standard
+			definition of closeness, that is defined for connected graphs only; in this case, checkConnectdedness
+			is automatically set to True.
+			Set this parameter to networkit.centrality.ClosenessVariant.Generalized to use the generalized
+			definition of closeness, that is defined for also non-connected graphs; in this case, checkConnectdedness
+			is automatically set to False.
 	"""
 
 	def __cinit__(self, Graph G, normalized, third):
