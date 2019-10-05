@@ -1509,6 +1509,53 @@ cdef class BidirectionalDijkstra(STSP):
 	"""
 	pass
 
+
+cdef extern from "<networkit/distance/AStar.hpp>":
+	cdef cppclass _AStar "NetworKit::AStar"(_STSP):
+		_AStar(_Graph G, vector[double] &heu, node source, node target, bool_t storePred) except +
+
+cdef class AStar(STSP):
+	"""
+	A* path-finding algorithm.
+
+	Parameters
+	----------
+
+	G : networkit.Graph
+		The input graph.
+	heu : list
+		List of lower bounds of the distance of each node to the target.
+	source : node
+		The source node.
+	target : node
+		The target node.
+	storePred : bool
+		If true, the algorithm will also store the predecessors
+		and reconstruct a shortest path from @a source and @a target.
+	"""
+
+	cdef vector[double] heu
+	def __cinit__(self, Graph G, vector[double] &heu, node source, node target, bool_t storePred):
+		self.heu = heu
+		self._this = new _AStar(G._this, self.heu, source, target, storePred)
+
+	def run(self):
+		(<_AStar*>(self._this)).run()
+		return self
+
+	def getPath(self):
+		"""
+		Returns a shortest path from the source node to the target node (without
+		including them). Note: the shortest path can be constructed only if the
+		algorithm is executed with @a storePred set to true.
+
+		Returns
+		-------
+		vector
+			A shortest path from the source node to the target node.
+		"""
+		return (<_AStar*>(self._this)).getPath()
+
 # TODO: expose all methods
 
 cdef extern from "<networkit/distance/SSSP.hpp>":
@@ -1523,6 +1570,8 @@ cdef extern from "<networkit/distance/SSSP.hpp>":
 		set[vector[node]] getPaths(node t, bool_t forward) except +
 		vector[node] getNodesSortedByDistance(bool_t moveOut) except +
 		double _numberOfPaths(node t) except +
+		void setSource(node s) except +
+		void setTarget(node t) except +
 
 cdef class SSSP(Algorithm):
 	""" Base class for single source shortest path algorithms. """
@@ -1536,7 +1585,7 @@ cdef class SSSP(Algorithm):
 	def getDistances(self, moveOut):
 		"""
 		DEPRECATED
-		Returns a vector of weighted distances from the source node, i.e. the
+		Returns a list of weighted distances from the source node, i.e. the
  	 	length of the shortest path from the source node to any other node.
 
  	 	Returns
@@ -1548,24 +1597,19 @@ cdef class SSSP(Algorithm):
 
 	def getDistances(self):
 		"""
-		Returns a vector of weighted distances from the source node, i.e. the
+		Returns a list of weighted distances from the source node, i.e. the
 		length of the shortest path from the source node to any other node.
 
 		Returns
 		-------
-		vector
-		The weighted distances from the source node to any other node in the graph.
+		list
+			The weighted distances from the source node to any other node in the graph.
 		"""
 		return (<_SSSP*>(self._this)).getDistances()
 
 	def distance(self, t):
-		return (<_SSSP*>(self._this)).distance(t)
-
-	def getPredecessors(self, t):
-		return (<_SSSP*>(self._this)).getPredecessors(t)
-
-	def getPath(self, t, forward=True):
-		""" Returns a shortest path from source to `t` and an empty path if source and `t` are not connected.
+		"""
+		Returns the distance from the source node to @a t.
 
 		Parameters
 		----------
@@ -1574,12 +1618,64 @@ cdef class SSSP(Algorithm):
 
 		Returns
 		-------
-		vector
-			A shortest path from source to `t or an empty path.
+		double
+			Distance from the source node to @a t.
+		"""
+		return (<_SSSP*>(self._this)).distance(t)
+
+	def getPredecessors(self, t):
+		"""
+		Returns the predecessor nodes of @a t on all shortest paths from source
+		to @a t.
+		Parameters
+		----------
+		t : node
+			Target node.
+
+		Returns
+		-------
+		list
+			The predecessors of @a t on all shortest paths from source to @a t.
+		"""
+		return (<_SSSP*>(self._this)).getPredecessors(t)
+
+	def getPath(self, t, forward=True):
+		"""
+		Returns a shortest path from source to @a t and an empty path if source and @a t
+		are not connected.
+
+		Parameters
+		----------
+		t : node
+			Target node.
+		forward : bool
+			If @c true (default) the path is directed from source to @a t, otherwise the path
+			is reversed.
+
+		Returns
+		-------
+		list
+			A shortest path from source to @a t or an empty path.
 		"""
 		return (<_SSSP*>(self._this)).getPath(t, forward)
 
 	def getPaths(self, t, forward=True):
+		"""
+		Returns all shortest paths from source to @a t and an empty set if source
+		and @a t are not connected.
+
+		Parameters
+		----------
+		t : node
+			Target node.
+		forward : bool
+			If @c true (default) the path is directed from source to
+			@a t, otherwise the path is reversed.
+
+		Returns
+		-------
+			All shortest paths from source node to target node @a t.
+		"""
 		cdef set[vector[node]] paths = (<_SSSP*>(self._this)).getPaths(t, forward)
 		result = []
 		for elem in paths:
@@ -1587,7 +1683,7 @@ cdef class SSSP(Algorithm):
 		return result
 
 	def getNodesSortedByDistance(self, moveOut=True):
-		""" Returns a vector of nodes ordered in increasing distance from the source.
+		""" Returns a list of nodes ordered in increasing distance from the source.
 
 		For this functionality to be available, storeNodesSortedByDistance has to be set to true in the constructor.
 		There are no guarantees regarding the ordering of two nodes with the same distance to the source.
@@ -1599,13 +1695,48 @@ cdef class SSSP(Algorithm):
 
 		Returns
 		-------
-		vector
+		list
 			Nodes ordered in increasing distance from the source.
 		"""
 		return (<_SSSP*>(self._this)).getNodesSortedByDistance(moveOut)
 
 	def numberOfPaths(self, t):
+		"""
+		Returns the number of paths from the source node to @a t.
+
+		Parameters
+		----------
+		t : node
+			Target node.
+
+		Returns
+		-------
+		int
+			The number of paths from the source node to @a t.
+		"""
 		return (<_SSSP*>(self._this))._numberOfPaths(t)
+
+	def setSource(self, s not None):
+		"""
+		Sets a new source node.
+
+		Parameters
+		----------
+		s : node
+			New source node.
+		"""
+		(<_SSSP*>(self._this)).setSource(s)
+
+	def setTarget(self, t not None):
+		"""
+		Sets a new target node.
+
+		Parameters
+		----------
+		t : node
+			New target node.
+		"""
+		(<_SSSP*>(self._this)).setTarget(t)
 
 
 cdef extern from "<networkit/distance/DynSSSP.hpp>":
@@ -4996,6 +5127,15 @@ cdef class PLP(CommunityDetector):
 	""" Parallel label propagation for community detection:
 	Moderate solution quality, very short time to solution.
 
+	Parameters
+	----------
+	G : networkit.Graph
+		The graph on which the algorithm has to run.
+	updateThreshold : int
+		number of nodes that have to be changed in each iteration so that a new iteration starts.
+	baseClustering : networkit.Partition
+		PLP needs a base clustering to start from; if none is given the algorithm will run on a singleton clustering.
+
 	Notes
 	-----
 	As described in Ovelgoenne et al: An Ensemble Learning Strategy for Graph Clustering
@@ -5010,14 +5150,6 @@ cdef class PLP(CommunityDetector):
 		"""
 		Constructor to the Parallel label propagation community detection algorithm.
 
-		Parameters
-		----------
-		G : networkit.Graph
-			The graph on which the algorithm has to run.
-		updateThreshold : integer
-			number of nodes that have to be changed in each iteration so that a new iteration starts.
-		baseClustering : networkit.Partition
-			PLP needs a base clustering to start from; if none is given the algorithm will run on a singleton clustering.
 		"""
 		self._G = G
 
@@ -7239,7 +7371,7 @@ cdef class DegreeCentrality(Centrality):
  	Optional normalization by maximum degree. The run() method runs in O(m) time, where m is the number of
 	edges in the graph.
 
- 	DegreeCentrality(G, normalized=False)
+	DegreeCentrality(G, normalized=False, outDeg=True, ignoreSelfLoops=True)
 
  	Constructs the DegreeCentrality class for the given Graph `G`. If the scores should be normalized,
  	then set `normalized` to True.
@@ -7250,6 +7382,10 @@ cdef class DegreeCentrality(Centrality):
  		The graph.
  	normalized : bool, optional
  		Normalize centrality values in the interval [0,1].
+        outdeg : bool, optional
+		If set to true, computes the centrality based on out-degrees, otherwise based on the in-degrees.
+        ignoreSelfLoops : bool, optional
+		If set to true, self loops will not be taken into account.
 	"""
 
 	def __cinit__(self, Graph G, bool_t normalized=False, bool_t outDeg = True, bool_t ignoreSelfLoops=True):

@@ -828,41 +828,45 @@ void Graph::removeEdgesFromIsolatedSet(const std::vector<node> &nodesInSet) {
 }
 
 void Graph::removeSelfLoops() {
-	count nEdgesRemoved = 0;
-
-#pragma omp parallel for reduction(+ : nEdgesRemoved)
+#pragma omp parallel for
 	for (omp_index i = 0; i < static_cast<omp_index>(z); ++i) {
-		node u = static_cast<node>(i);
-		auto isSelfLoop = [&u](node v) { return u == v; };
-		nEdgesRemoved += removeAdjacentEdges(u, isSelfLoop);
-		if (isDirected())
-			nEdgesRemoved += removeAdjacentEdges(u, isSelfLoop, true);
+		const auto u = static_cast<node>(i);
+		auto isSelfLoop = [u](node v) { return u == v; };
+		removeAdjacentEdges(u, isSelfLoop);
+		if (isDirected()) {
+			removeAdjacentEdges(u, isSelfLoop, true);
+		}
 	}
 
-	assert(nEdgesRemoved == numberOfSelfLoops());
-	m -= nEdgesRemoved;
+	m -= storedNumberOfSelfLoops;
 	storedNumberOfSelfLoops = 0;
 }
 
 void Graph::removeMultiEdges() {
-	count nEdgesRemoved = 0;
+	count removedEdges = 0;
+	count removedSelfLoops = 0;
 	std::unordered_set<node> nodes;
 
 	forNodes([&](node u) {
+		nodes.reserve(degree(u));
 		auto isMultiedge = [&nodes](node v) { return !nodes.insert(v).second; };
-		nEdgesRemoved += removeAdjacentEdges(u, isMultiedge);
-		nodes.clear();
+		auto result = removeAdjacentEdges(u, isMultiedge);
+		removedEdges += result.first;
+		removedSelfLoops += result.second;
 		if (isDirected()) {
-			nEdgesRemoved += removeAdjacentEdges(u, isMultiedge, true);
 			nodes.clear();
+			removeAdjacentEdges(u, isMultiedge, true).first;
 		}
-    });
+		nodes.clear();
+	});
 
+	if (!isDirected()) {
+		assert(!(removedEdges % 2));
+		removedEdges /= 2;
+	}
 
-	assert(!(nEdgesRemoved % 2));
-	if (!isDirected())
-		nEdgesRemoved /= 2;
-	m -= nEdgesRemoved;
+	m -= removedEdges + removedSelfLoops;
+	storedNumberOfSelfLoops -= removedSelfLoops;
 }
 
 void Graph::swapEdge(node s1, node t1, node s2, node t2) {
@@ -919,16 +923,65 @@ std::pair<node, node> Graph::randomEdge(bool uniformDistribution) const {
 	}
 
 	if (uniformDistribution) {
-		return randomEdges(1)[0];
+		/*
+		 * The simple idea here is to interpret all neighborhoods next to each other, resulting
+		 * in a virtual vector of size m. Then we draw a random index and return the edge.
+		 * For undirected edges, the vector has size 2m; but the idea remains. There is one minor
+		 * complication for undirected edges with self-loops: each edge {u,v} with u != v is stored
+		 * twice (once in the neighborhood of u, once in v) but a loop (u, u) is only stored once.
+		 * To equalize the probabilities we reject edges {u,v} with u > v and try again. This leads
+		 * to less than two expected trails in and is only done for undirected graphs with self-loops.
+		 */
+
+		while (true) {
+			const auto upper = directed
+				? numberOfEdges()
+				: 2 * numberOfEdges() - numberOfSelfLoops();
+			auto idx = Aux::Random::index(upper);
+
+			node u, v;
+
+			if (idx > upper / 2) {
+				// assuming degrees are somewhat distributed uniformly, it's better to start with
+				// larger nodes for large indices. In this case we have to mirror the index:
+				idx  = (upper-1) - idx;
+
+				for(u = upperNodeIdBound() - 1; idx >= degreeOut(u); --u) {
+					assert(0 <= u);
+
+					idx -= degreeOut(u);
+				}
+
+				v = outEdges[u][outEdges[u].size() - 1 - idx];
+
+			} else {
+				for(u = 0; idx >= degreeOut(u); ++u) {
+					assert(u < upperNodeIdBound());
+					idx -= degreeOut(u);
+				}
+
+				v = outEdges[u][idx];
+
+			}
+
+			if (numberOfSelfLoops() && !directed && u > v)
+				// reject (see above)
+				continue;
+
+			return {u, v};
+		}
 	}
 
-	node u, v; // we will return edge (u, v)
+	node u; // we will return edge (u, v)
+
 	// fast way, but not a uniform random edge!
 	do {
 		u = randomNode();
 	} while (outEdges[u].empty());
-	v = randomNeighbor(u);
-	return std::make_pair(u, v);
+
+	const auto v = randomNeighbor(u);
+
+	return {u, v};
 }
 
 std::vector<std::pair<node, node>> Graph::randomEdges(count nr) const {
@@ -938,7 +991,7 @@ std::vector<std::pair<node, node>> Graph::randomEdges(count nr) const {
 	}
 	std::vector<std::pair<node, node>> edges;
 
-	std::default_random_engine gen{std::random_device{}()};
+	auto& gen = Aux::Random::getURNG();
 	std::vector<count> outDeg(upperNodeIdBound());
 	for (count i = 0; i < upperNodeIdBound(); ++i) {
 		outDeg[i] = outEdges[i].size();
