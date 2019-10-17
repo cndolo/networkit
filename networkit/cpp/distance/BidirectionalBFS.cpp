@@ -36,7 +36,7 @@ void BidirectionalBFS::run() {
     visited[target] = ts + ballMask;
 
     bool stop = false;
-    node s, t;
+    node s = none, t = none;
 
     // Expands a ball of a level; idx is the ball index (either 0 or 1<<7)
     auto expand = [&](std::queue<node> &q, std::queue<node> &q_, uint8_t idx) {
