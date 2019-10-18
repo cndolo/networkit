@@ -83,6 +83,11 @@ if (("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang") OR
 	endif()
 	if (NETWORKIT_WARNINGS_AS_ERRORS)
 		set(NETWORKIT_CXX_FLAGS "${NETWORKIT_CXX_FLAGS} -Werror -Wno-error=deprecated-declarations")
+		if (("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU") AND
+			(${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL 9))
+			set(NETWORKIT_CXX_FLAGS "${NETWORKIT_CXX_FLAGS} -Wno-error=deprecated-copy")
+		endif()
+
 	endif()
 
 elseif (MSVC)
