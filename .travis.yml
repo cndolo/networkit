@@ -145,6 +145,22 @@ matrix:
         update_and_install_packages python3
         brew_cache_cleanup
 
+    - name: "macOS 10.12: llvm 9"
+      env:
+        - CC=/usr/local/opt/llvm@9/bin/clang
+        - CXX=/usr/local/opt/llvm@9/bin/clang++
+        - CACHE_NAME=OSX_10_12_LLVM9
+      os: osx
+      osx_image: xcode8.3
+      workspaces:
+        use: brew_cache_12
+      cache: *cache_dirs
+      before_cache: *before_cache_osx
+      before_install: |
+        source travis_config.sh
+        update_and_install_packages llvm@9 python3
+        brew_cache_cleanup
+
     - name: "macOS 10.12: llvm 4"
       env:
         - CC=/usr/local/opt/llvm@4/bin/clang
@@ -159,6 +175,22 @@ matrix:
       before_install: |
         source travis_config.sh
         update_and_install_packages llvm@4 python3
+        brew_cache_cleanup
+
+    - name: "macOS 10.12: GCC 9"
+      env:
+        - CC=/usr/local/opt/gcc@9/bin/gcc-9
+        - CXX=/usr/local/opt/gcc@9/bin/g++-9
+        - CACHE_NAME=OSX_10_12_GCC0
+      os: osx
+      osx_image: xcode8.3
+      workspaces:
+        use: brew_cache_12
+      cache: *cache_dirs
+      before_cache: *before_cache_osx
+      before_install: |
+        source travis_config.sh
+        update_and_install_packages gcc@9 python3
         brew_cache_cleanup
 
     - name: "macOS 10.12: GCC 6"
