@@ -9,16 +9,6 @@ export HOMEBREW_NO_GITHUB_API=1
 # $ = illegal package name; a blank line would cause macos grep to swallow everything
 _BREW_ALREADY_INSTALLED='$'
 
-function brew_install_and_cache_within_time_limit {
-    # Install the package and its dependencies one by one;
-    # use bottle if available, build and cache bottle if not.
-    # Terminate and exit with status 1 if this takes too long.
-    # Exit with status 2 on any other error.
-    _brew_install_and_cache_within_time_limit $@ \
-    || if test $? -eq 1; then brew_go_bootstrap_mode; return 1; else return 2; fi
-}
-
-
 # Installs osx packages required for the current build
 function update_and_install_packages () {
     brew update
@@ -175,14 +165,12 @@ function brew_cache_cleanup {
 
 #Internal functions
 
-function _brew_install_and_cache_within_time_limit {
+function brew_install_and_cache_within_time_limit {
     # This fn is run with || so errexit can't be enabled
+    set +x
 
-    local PACKAGE TIME_LIMIT TIME_HARD_LIMIT TIME_START MARKED_INSTALLED
+    local PACKAGE MARKED_INSTALLED
     PACKAGE="${1:?}" || return 2
-    TIME_LIMIT=${2:-$BREW_TIME_LIMIT} || return 2
-    TIME_HARD_LIMIT=${3:-$BREW_TIME_HARD_LIMIT} || return 2
-    TIME_START=${4:-$BREW_TIME_START} || return 2
 
     if grep -qxFf <(cat <<<"$_BREW_ALREADY_INSTALLED") <<<"$PACKAGE"; then
         MARKED_INSTALLED=1
@@ -203,13 +191,10 @@ function _brew_install_and_cache_within_time_limit {
     DEPS=`brew deps "$PACKAGE" $INCLUDE_BUILD` || return 2
     DEPS=`grep -vxF <(cat <<<"$_BREW_ALREADY_INSTALLED") <<<"$DEPS"` || test $? -eq 1 || return 2
     for dep in $DEPS; do
-        #TIME_LIMIT only has to be met if we'll be actually building the main project this iteration, i.e. after the "root" module installation
-        #While we don't know that yet, we can make better use of Travis-given time with a laxer limit
-        #We still can't overrun TIME_HARD_LIMIT as that would't leave time to save the cache
-        _brew_install_and_cache_within_time_limit "$dep" $(((TIME_LIMIT+TIME_HARD_LIMIT)/2)) "$TIME_HARD_LIMIT" "$TIME_START" || return $?
+        brew_install_and_cache_within_time_limit "$dep" || return $?
     done
 
-    _brew_install_and_cache "$PACKAGE" "$([[ -z "$BUILD_FROM_SOURCE" ]] && echo 1 || echo 0)" "$KEG_ONLY" || return 2
+    brew_install_and_cache "$PACKAGE" "$([[ -z "$BUILD_FROM_SOURCE" ]] && echo 1 || echo 0)" "$KEG_ONLY" || return 2
 }
     
 
@@ -297,7 +282,7 @@ function _brew_is_bottle_available {
     fi
 }
 
-function _brew_install_and_cache {
+function brew_install_and_cache {
     # Install bottle or make and cache bottle.
     # assumes that deps were already installed
     # and not already the latest version
