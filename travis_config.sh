@@ -16,7 +16,7 @@ function update_and_install_packages () {
     # libomp is always required to build NetworKit
     brew_install_and_cache_within_time_limit libomp
     for i; do
-        brew_install_and_cache_within_time_limit $i
+        travis_wait 30 brew_install_and_cache_within_time_limit $i
     done
 }
 
