@@ -14,19 +14,15 @@ function update_and_install_packages () {
     brew update
     brew_add_local_bottles
     # libomp is always required to build NetworKit
-    for var in "$@"
-	do
-		echo "Want to install $var";
-	done
-    brew_install_and_cache_within_time_limit libomp
+    local BUILD_FROM_SOURCE INCLUDE_BUILD KEG_ONLY
+    _brew_is_bottle_available libomp KEG_ONLY || BUILD_FROM_SOURCE=1
+    brew_install_and_cache libomp "$([[ -z "$BUILD_FROM_SOURCE" ]] && echo 1 || echo 0)" "$KEG_ONLY" || return 2
 
     for PACKAGE in "$@"
 	do
-		echo "Installing $PACKAGE";
-        #travis_wait 30 brew_install_and_cache_within_time_limit $var
-    	local BUILD_FROM_SOURCE INCLUDE_BUILD KEG_ONLY
-        _brew_is_bottle_available "$PACKAGE" KEG_ONLY || BUILD_FROM_SOURCE=1
-        brew_install_and_cache "$PACKAGE" "$([[ -z "$BUILD_FROM_SOURCE" ]] && echo 1 || echo 0)" "$KEG_ONLY" || return 2
+		echo "Installing $PACKAGE"
+        travis_wait 60 brew_install_and_cache_within_time_limit $PACKAGE \
+        || if test $? -eq 1; then brew_go_bootstrap_mode; return 1; else return 2; fi
     done
 }
 
@@ -175,6 +171,38 @@ function brew_cache_cleanup {
 
 #Internal functions
 
+function brew_go_bootstrap_mode {
+    # Can be overridden
+    # Terminate the build but ensure saving the cache
+    local EXIT_CODE=${1:-1}
+
+    echo "Going into cache bootstrap mode"
+
+    BREW_BOOTSTRAP_MODE=1
+
+    #Can't just `exit` because that would terminate the build without saving the cache
+    #Have to replace further actions with no-ops
+
+    local MESSAGE=""; if [ "$EXIT_CODE" -ne 0 ]; then
+    MESSAGE='Building dependencies took too long. Restart the build in Travis UI to continue from cache.';
+    fi
+
+    eval '
+    function '"$cmd"' { return 0; }
+    function repair_wheelhouse { return 0; }
+    function install_run {'\
+             "$(if [ -n "$MESSAGE" ]; then
+          echo \
+           '        echo -e "\n'"$MESSAGE"'\n"'
+          fi)"\
+      '
+        # Travis runs user scripts via `eval` i.e. in the same shell process.
+        # So have to unset errexit in order to get to cache save stage
+         set +e; return '"$EXIT_CODE"'
+    }'
+}
+
+
 function brew_install_and_cache_within_time_limit {
     # This fn is run with || so errexit can't be enabled
     set +x
@@ -299,11 +327,8 @@ function brew_install_and_cache {
     
     local PACKAGE USE_BOTTLE KEG_ONLY
     PACKAGE="${1:?}"
-	echo "PACKAGE $PACKAGE"
     USE_BOTTLE="${2:?}"
-	echo "USE_BOTTLE $USE_BOTTLE"
     KEG_ONLY="${3:?}"
-	echo "KEG_ONLY $KEG_ONLY"
     local VERB
     
     if brew list --versions "$PACKAGE"; then
