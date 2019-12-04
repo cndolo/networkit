@@ -14,15 +14,19 @@ function update_and_install_packages () {
     brew update
     brew_add_local_bottles
     # libomp is always required to build NetworKit
-    local BUILD_FROM_SOURCE INCLUDE_BUILD KEG_ONLY
-    _brew_is_bottle_available libomp KEG_ONLY || BUILD_FROM_SOURCE=1
-	brew_install_and_cache libomp "$([[ -z "$BUILD_FROM_SOURCE" ]] && echo 1 || echo 0)" "$KEG_ONLY" || return 2
+    for var in "$@"
+	do
+		echo "Want to install $var";
+	done
+    brew_install_and_cache_within_time_limit libomp
 
     for PACKAGE in "$@"
 	do
-        local BUILD_FROM_SOURCE INCLUDE_BUILD KEG_ONLY
+		echo "Installing $PACKAGE";
+        #travis_wait 30 brew_install_and_cache_within_time_limit $var
+    	local BUILD_FROM_SOURCE INCLUDE_BUILD KEG_ONLY
         _brew_is_bottle_available "$PACKAGE" KEG_ONLY || BUILD_FROM_SOURCE=1
-        travis_wait 30 brew_install_and_cache "$PACKAGE" "$([[ -z "$BUILD_FROM_SOURCE" ]] && echo 1 || echo 0)" "$KEG_ONLY" || return 2
+        brew_install_and_cache "$PACKAGE" "$([[ -z "$BUILD_FROM_SOURCE" ]] && echo 1 || echo 0)" "$KEG_ONLY" || return 2
     done
 }
 
@@ -171,6 +175,39 @@ function brew_cache_cleanup {
 
 #Internal functions
 
+function brew_install_and_cache_within_time_limit {
+    # This fn is run with || so errexit can't be enabled
+    set +x
+
+    local PACKAGE MARKED_INSTALLED
+    PACKAGE="${1:?}" || return 2
+
+    if grep -qxFf <(cat <<<"$_BREW_ALREADY_INSTALLED") <<<"$PACKAGE"; then
+        MARKED_INSTALLED=1
+    fi
+        
+    if [ -n "$MARKED_INSTALLED" ] || (brew list --versions "$PACKAGE" >/dev/null && ! (brew outdated | grep -qxF "$PACKAGE")); then
+        echo "Already installed and the latest version: $PACKAGE"
+        if [ -z "$MARKED_INSTALLED" ]; then _brew_mark_installed "$PACKAGE"; fi
+        return 0
+    fi
+    
+    local BUILD_FROM_SOURCE INCLUDE_BUILD KEG_ONLY
+    
+    _brew_is_bottle_available "$PACKAGE" KEG_ONLY || BUILD_FROM_SOURCE=1
+    [ -n "$BUILD_FROM_SOURCE" ] && INCLUDE_BUILD="--include-build" || true
+
+    # Whitespace is illegal in package names so converting all whitespace into single spaces due to no quotes is okay.
+    DEPS=`brew deps "$PACKAGE" $INCLUDE_BUILD` || return 2
+    DEPS=`grep -vxF <(cat <<<"$_BREW_ALREADY_INSTALLED") <<<"$DEPS"` || test $? -eq 1 || return 2
+    for dep in $DEPS; do
+        brew_install_and_cache_within_time_limit "$dep" || return $?
+    done
+
+    brew_install_and_cache "$PACKAGE" "$([[ -z "$BUILD_FROM_SOURCE" ]] && echo 1 || echo 0)" "$KEG_ONLY" || return 2
+}
+    
+
 function _brew_parse_bottle_json {
     # Parse JSON file resulting from `brew bottle --json`
     # and save data into specified variables
@@ -262,8 +299,11 @@ function brew_install_and_cache {
     
     local PACKAGE USE_BOTTLE KEG_ONLY
     PACKAGE="${1:?}"
+	echo "PACKAGE $PACKAGE"
     USE_BOTTLE="${2:?}"
+	echo "USE_BOTTLE $USE_BOTTLE"
     KEG_ONLY="${3:?}"
+	echo "KEG_ONLY $KEG_ONLY"
     local VERB
     
     if brew list --versions "$PACKAGE"; then
