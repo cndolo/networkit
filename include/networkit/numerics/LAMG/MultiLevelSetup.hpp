@@ -1,16 +1,16 @@
 /*
- * MultiLevelSetup.h
+ * MultiLevelSetup.hpp
  *
  *  Created on: 10.01.2015
- *      Author: Michael Wegner (michael.wegner@student.kit.edu)
+ *      Author: Michael Wegner
  */
 
 #ifndef NETWORKIT_NUMERICS_LAMG_MULTI_LEVEL_SETUP_HPP_
 #define NETWORKIT_NUMERICS_LAMG_MULTI_LEVEL_SETUP_HPP_
 
+#include <networkit/algebraic/CSRMatrix.hpp>
 #include <networkit/numerics/LAMG/LevelHierarchy.hpp>
 #include <networkit/numerics/Smoother.hpp>
-#include <networkit/algebraic/CSRMatrix.hpp>
 
 #include <limits>
 #include <cmath>
@@ -81,7 +81,7 @@ private:
      * @param numVectors Number of test vectors to create.
      * @return The created test vectors.
      */
-    std::vector<Vector> generateTVs(const Matrix& matrix, Vector& tv, const count numVectors) const;
+    std::vector<Vector> generateTVs(const Matrix& matrix, Vector& tv, count numVectors) const;
 
     /**
      * Adds high degree nodes as seeds to @a status.
