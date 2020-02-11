@@ -33,8 +33,7 @@ protected:
 
 TEST_F(LAMGGTest, testSmallGraphs) {
     METISGraphReader reader;
-    GaussSeidelRelaxation<CSRMatrix> gaussSmoother;
-    Smoother<CSRMatrix> *smoother = new GaussSeidelRelaxation<CSRMatrix>();
+    GaussSeidelRelaxation<CSRMatrix> gaussSmoother{}, smoother{};
     MultiLevelSetup<CSRMatrix> setup(gaussSmoother);
     Aux::Timer timer;
     for (index i = 0; i < GRAPH_INSTANCES.size(); ++i) {
@@ -50,7 +49,7 @@ TEST_F(LAMGGTest, testSmallGraphs) {
         LevelHierarchy<CSRMatrix> hierarchy;
         timer.start();
         setup.setup(G, hierarchy);
-        SolverLamg<CSRMatrix> solver(hierarchy, *smoother);
+        SolverLamg<CSRMatrix> solver(hierarchy, smoother);
         timer.stop();
         DEBUG("setup time\t ", timer.elapsedMilliseconds());
 
@@ -78,8 +77,6 @@ TEST_F(LAMGGTest, testSmallGraphs) {
         DEBUG("DONE");
 
     }
-
-    delete smoother;
 }
 
 Vector LAMGGTest::randVector(count dimension, double, double) const {
