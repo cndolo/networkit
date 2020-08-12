@@ -5,6 +5,7 @@
  *      Author: ebergamini
  */
 
+<<<<<<< HEAD
 #include "DynApproxBetweennessDir.h"
 #include "../auxiliary/Random.h"
 #include "../properties/Diameter.h"
@@ -17,6 +18,20 @@
 #include "../graph/BFSvisit.h"
 #include <ctime>
 #include <math.h>
+=======
+#include <networkit/centrality/DynApproxBetweennessDir.hpp>
+#include <networkit/components/StronglyConnectedComponents.hpp>
+#include <networkit/auxiliary/Random.hpp>
+#include <networkit/distance/Diameter.hpp>
+#include <networkit/graph/GraphTools.hpp>
+#include <networkit/distance/DynDijkstra.hpp>
+#include <networkit/distance/DynBFS.hpp>
+#include <networkit/auxiliary/Log.hpp>
+#include <networkit/auxiliary/NumericTools.hpp>
+
+#include <ctime>
+#include <cmath>
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
 
 namespace NetworKit {
 
@@ -214,9 +229,15 @@ void DynApproxBetweennessDir::sampleNewPaths(count start, count end) {
         DEBUG("sample ", i);
         // sample random node pair
         node u1, u2;
+<<<<<<< HEAD
         u1 = Sampling::randomNode(G);
         do {
             u2 = Sampling::randomNode(G);
+=======
+        u1 = GraphTools::randomNode(G);
+        do {
+            u2 = GraphTools::randomNode(G);
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
         } while (u1 == u2);
         u.push_back(u1);
         v.push_back(u2);
@@ -224,7 +245,11 @@ void DynApproxBetweennessDir::sampleNewPaths(count start, count end) {
             return; //TODO weighted graphs!
         //    sssp[i].reset(new DynDijkstra(G, u[i], storePreds));
         } else {
+<<<<<<< HEAD
             BFSvisit bfs(G, u[i]);
+=======
+			DynBFS bfs(G, u[i], storePreds);
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
             sssp.push_back(bfs);
         }
         DEBUG("running shortest path algorithm for node ", u[i]);
@@ -267,7 +292,11 @@ void DynApproxBetweennessDir::sampleNewPaths(count start, count end) {
                     }
 
                 });
+<<<<<<< HEAD
                 assert (choices.size() > 0);
+=======
+                assert (!choices.empty() > 0);
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
                 node z = Aux::Random::weightedChoice(choices);
                 assert (z <= G.upperNodeIdBound());
                 if (z != u[i]) {
@@ -298,7 +327,13 @@ void DynApproxBetweennessDir::run() {
   {
     vd = computeVDdirected();
   } else {
+<<<<<<< HEAD
     vd = Diameter::estimatedVertexDiameterPedantic(G);
+=======
+    Diameter diam(G, DiameterAlgo::estimatedPedantic);
+    diam.run();
+    vd = diam.getDiameter().first;
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
   }
 
   INFO("estimated diameter: ", vd);
@@ -373,7 +408,11 @@ void DynApproxBetweennessDir::update(const std::vector<GraphEvent>& batch) {
                           choices.emplace_back(z, weight);
                       }
                   });
+<<<<<<< HEAD
                   assert (choices.size() > 0); // this should fail only if the graph is not connected
+=======
+                  assert (!choices.empty()); // this should fail only if the graph is not connected
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
                   node z = Aux::Random::weightedChoice(choices);
                   assert (z <= G.upperNodeIdBound());
                   if (z != u[i]) {

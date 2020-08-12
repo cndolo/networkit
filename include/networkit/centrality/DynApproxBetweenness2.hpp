@@ -5,6 +5,7 @@
  *      Author: ebergamini
  */
 
+<<<<<<< HEAD
 #ifndef DYNAPPROXBETW2_H_
 #define DYNAPPROXBETW2_H_
 
@@ -14,6 +15,22 @@
 #include "../graph/BFSvisit.h"
 
 #include <math.h>
+=======
+/*
+ * Note from Charmaine:
+ *
+ * This class is for insertions+deletions in undirected unweighted graphs
+ */
+
+#ifndef DYNAPPROXBETW2_H_
+#define DYNAPPROXBETW2_H_
+
+#include <networkit/centrality/Centrality.hpp>
+#include <networkit/dynamics/GraphEvent.hpp>
+#include <networkit/distance/DynSSSP.hpp>
+
+#include <cmath>
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
 #include <algorithm>
 #include <memory>
 #include <omp.h>
@@ -24,7 +41,11 @@ namespace NetworKit {
  * @ingroup graph
  * Interface for dynamic approximated betweenness centrality algorithm.
  */
+<<<<<<< HEAD
 class DynApproxBetweenness2: public Centrality, public DynCentrality {
+=======
+class DynApproxBetweenness2: public Centrality, public DynAlgorithm {
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
 
 public:
     /**
@@ -66,8 +87,13 @@ private:
     count vd;
     count r;
     count r2;
+<<<<<<< HEAD
     std::vector<BFSvisit> sssp;
     std::vector<BFSvisit> sssp2;
+=======
+    std::vector<DynSSSP> sssp;
+    std::vector<DynSSSP> sssp2;
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
     std::vector<std::vector<count>> npaths;
 
     std::vector<count> vis;

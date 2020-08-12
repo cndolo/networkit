@@ -5,6 +5,7 @@
  *      Author: ebergamini
  */
 
+<<<<<<< HEAD
 #include "DynApproxBetweenness2W.h"
 #include "../auxiliary/Random.h"
 #include "../properties/Diameter.h"
@@ -15,6 +16,22 @@
 #include <queue>
 #include <math.h>
 
+=======
+/* Note from Charmaine: 
+ *
+ * This class is for edge insertions+deletions+weight updates in undirected weighted graphs
+ * */
+#include <networkit/centrality/DynApproxBetweenness2W.hpp>
+#include <networkit/auxiliary/Random.hpp>
+#include <networkit/distance/Diameter.hpp>
+#include <networkit/graph/GraphTools.hpp>
+#include <networkit/distance/DynDijkstra.hpp>
+#include <networkit/distance/DynBFS.hpp>
+#include <networkit/auxiliary/Log.hpp>
+#include <networkit/auxiliary/NumericTools.hpp>
+#include <queue>
+#include <cmath>
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
 
 namespace NetworKit {
 
@@ -46,7 +63,14 @@ void DynApproxBetweenness2W::run() {
     wmin.clear();
     compSize.clear();
 
+<<<<<<< HEAD
     vd = Diameter::estimatedVertexDiameterPedantic(G);
+=======
+    //vd = Diameter::estimatedVertexDiameterPedantic(G);
+    Diameter diam(G, DiameterAlgo::estimatedPedantic);
+    diam.run();
+    vd = diam.getDiameter().first;
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
 
     INFO("estimated diameter: ", vd);
     r = ceil((c / (epsilon * epsilon)) * (floor(log2(vd - 2)) + 1 + log(1 / delta)));
@@ -69,7 +93,11 @@ void DynApproxBetweenness2W::run() {
         if (vis[s] > 0) {
             continue;
         }
+<<<<<<< HEAD
         DijkstraVisit dij(G,s);
+=======
+		DynDijkstra dij(G, s, storePreds);
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
         count max1 = 0, max2 = 0;
         count thisCompSize = 0;
         edgeweight wminLocal = infDist;
@@ -109,6 +137,7 @@ void DynApproxBetweenness2W::sampleNewPaths(count start, count end) {
         DEBUG("sample ", i);
         // sample random node pair
         node u1, u2;
+<<<<<<< HEAD
         u1 = Sampling::randomNode(G);
         do {
             u2 = Sampling::randomNode(G);
@@ -116,6 +145,15 @@ void DynApproxBetweenness2W::sampleNewPaths(count start, count end) {
         u.push_back(u1);
         v.push_back(u2);
         DijkstraVisit dij(G, u[i]);
+=======
+        u1 = GraphTools::randomNode(G);
+        do {
+            u2 = GraphTools::randomNode(G);
+        } while (u1 == u2);
+        u.push_back(u1);
+        v.push_back(u2);
+		DynDijkstra(G, u[i], storePreds);
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
         sssp.push_back(dij);
         DEBUG("running shortest path algorithm for node ", u[i]);
         std::vector<count> sigma(G.upperNodeIdBound(), 0);
@@ -169,7 +207,11 @@ void DynApproxBetweenness2W::sampleNewPaths(count start, count end) {
                     }
 
                 });
+<<<<<<< HEAD
                 assert (choices.size() > 0);
+=======
+                assert (!choices.empty());
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
                 node z = Aux::Random::weightedChoice(choices);
                 assert (z <= G.upperNodeIdBound());
                 if (z != u[i]) {
@@ -251,7 +293,11 @@ void DynApproxBetweenness2W::update(const std::vector<GraphEvent>& batch) {
                             choices.emplace_back(z, weight);
                         }
                     });
+<<<<<<< HEAD
                     assert (choices.size() > 0);
+=======
+                    assert (!choices.empty());
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
                     node z = Aux::Random::weightedChoice(choices);
                     assert (z <= G.upperNodeIdBound());
                     if (z != u[i]) {
@@ -314,7 +360,11 @@ void DynApproxBetweenness2W::update(const std::vector<GraphEvent>& batch) {
         count max1 = 0, max2 = 0;
         edgeweight wminLocal = infDist;
         count compSizeLocal = 0;
+<<<<<<< HEAD
         DijkstraVisit dij(G,s);
+=======
+		DynDijkstra dij(G, s, storePreds);
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
         dij.run([&](node w, count dist){
             vis[w]++;
             compSizeLocal ++;

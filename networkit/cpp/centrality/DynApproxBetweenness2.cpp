@@ -5,6 +5,7 @@
  *      Author: ebergamini
  */
 
+<<<<<<< HEAD
 #include "DynApproxBetweenness2.h"
 #include "../auxiliary/Random.h"
 #include "../properties/Diameter.h"
@@ -15,6 +16,18 @@
 #include "../auxiliary/NumericTools.h"
 #include <queue>
 #include <math.h>
+=======
+#include <networkit/centrality/DynApproxBetweenness2.hpp>
+#include <networkit/auxiliary/Random.hpp>
+#include <networkit/distance/Diameter.hpp>
+#include <networkit/graph/GraphTools.hpp>
+#include <networkit/distance/DynDijkstra.hpp>
+#include <networkit/distance/DynBFS.hpp>
+#include <networkit/auxiliary/Log.hpp>
+#include <networkit/auxiliary/NumericTools.hpp>
+#include <queue>
+#include <cmath>
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
 
 namespace NetworKit {
 
@@ -45,7 +58,16 @@ void DynApproxBetweenness2::run() {
     maxDist2.clear();
 
 
+<<<<<<< HEAD
     vd = Diameter::estimatedVertexDiameterPedantic(G);
+=======
+    //vd = Diameter::estimatedVertexDiameterPedantic(G);
+    Diameter diam(G, DiameterAlgo::estimatedPedantic);
+    diam.run();
+    edgeweight vd = diam.getDiameter().first;
+
+    INFO("estimated diameter: ", vd);
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
 
     INFO("estimated diameter: ", vd);
     r = ceil((c / (epsilon * epsilon)) * (floor(log2(vd - 2)) + 1 + log(1 / delta)));
@@ -68,7 +90,11 @@ void DynApproxBetweenness2::run() {
         if (vis[s] > 0) {
             continue;
         }
+<<<<<<< HEAD
         BFSvisit bfs(G,s);
+=======
+		DynBFS bfs(G, s, storePreds);
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
         count max1 = 0, max2 = 0;
         bfs.run([&](node w, count dist){
             vis[w]++;
@@ -99,9 +125,15 @@ void DynApproxBetweenness2::sampleNewPaths(count start, count end) {
         DEBUG("sample ", i);
         // sample random node pair
         node u1, u2;
+<<<<<<< HEAD
         u1 = Sampling::randomNode(G);
         do {
             u2 = Sampling::randomNode(G);
+=======
+        u1 = GraphTools::randomNode(G);
+        do {
+            u2 = GraphTools::randomNode(G);
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
         } while (u1 == u2);
         u.push_back(u1);
         v.push_back(u2);
@@ -109,7 +141,11 @@ void DynApproxBetweenness2::sampleNewPaths(count start, count end) {
             return; //TODO weighted graphs!
         //    sssp[i].reset(new DynDijkstra(G, u[i], storePreds));
         } else {
+<<<<<<< HEAD
             BFSvisit bfs(G, u[i]);
+=======
+			DynBFS bfs(G, u[i], storePreds);
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
             sssp.push_back(bfs);
         }
         DEBUG("running shortest path algorithm for node ", u[i]);
@@ -152,7 +188,11 @@ void DynApproxBetweenness2::sampleNewPaths(count start, count end) {
                     }
 
                 });
+<<<<<<< HEAD
                 assert (choices.size() > 0);
+=======
+                assert (!choices.empty());
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
                 node z = Aux::Random::weightedChoice(choices);
                 assert (z <= G.upperNodeIdBound());
                 if (z != u[i]) {
@@ -230,7 +270,11 @@ void DynApproxBetweenness2::update(const std::vector<GraphEvent>& batch) {
                             choices.emplace_back(z, weight);
                         }
                     });
+<<<<<<< HEAD
                     assert (choices.size() > 0); // this should fail only if the graph is not connected
+=======
+                    assert (!choices.empty()); // this should fail only if the graph is not connected
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
                     node z = Aux::Random::weightedChoice(choices);
                     assert (z <= G.upperNodeIdBound());
                     if (z != u[i]) {
@@ -283,7 +327,11 @@ void DynApproxBetweenness2::update(const std::vector<GraphEvent>& batch) {
             continue;
         }
         count max1 = 0, max2 = 0;
+<<<<<<< HEAD
         BFSvisit bfs(G,s);
+=======
+		DynBFS bfs(G, s, storePreds);
+>>>>>>> 7ca6f73b0... Fix includes and first steps at compiling files (not compiling yet)
         bfs.run([&](node w, count dist){
             vis[w]++;
             if(dist > max1) {
