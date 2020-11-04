@@ -9,6 +9,7 @@
 
 #include <networkit/centrality/Betweenness.hpp>
 #include <networkit/centrality/DynApproxBetweenness.hpp>
+#include <networkit/centrality/DynApproxBetweennessNew.hpp>
 #include <networkit/centrality/ApproxBetweenness.hpp>
 #include <networkit/io/METISGraphReader.hpp>
 #include <networkit/auxiliary/Log.hpp>
@@ -207,6 +208,51 @@ TEST_F(DynBetweennessGTest, runDynVsStaticCaseInsertUndirected){
                 EXPECT_NEAR(brandes.score(v), ibet.score(v), 1e-8);
             });
         }
+}
+
+TEST_F(DynBetweennessGTest, runDynApproxBetweennessNew) {
+/* Graph:
+0    3   6
+    \  / \ /
+    2    5
+    /  \ / \
+1    4   7
+*/
+    int n = 8;
+    Graph G(n);
+
+    G.addEdge(0, 2);
+    G.addEdge(1, 2);
+    G.addEdge(2, 3);
+    G.addEdge(2, 4);
+    G.addEdge(3, 5);
+    G.addEdge(4, 5);
+    G.addEdge(5, 6);
+    G.addEdge(5, 7);
+
+    //double epsilon = 0.01; // error
+    double epsilon = 0.1; // error
+    double delta = 0.1; // confidence
+    DynApproxBetweennessNew dynbc(G, epsilon, delta);
+    Betweenness bc(G);
+    dynbc.run();
+    bc.run();
+    std::vector<double> dynbc_scores = dynbc.scores();
+    std::vector<double> bc_scores = bc.scores();
+    for(int i=0; i<n; i++) {
+        DEBUG("Difference ", dynbc_scores[i]-bc_scores[i]/double(n*(n-1)));
+    }
+    std::vector<GraphEvent> batch;
+    batch.push_back(GraphEvent(GraphEvent::EDGE_ADDITION, 0, 6, 1.0));
+    G.addEdge(batch[0].u, batch[0].v);
+    bc.run();
+    dynbc.updateBatch(batch);
+    dynbc_scores = dynbc.scores();
+    bc_scores = bc.scores();
+    for(int i=0; i<n; i++) {
+        DEBUG("Difference ", dynbc_scores[i]-bc_scores[i]/double(n*(n-1)));
+    }
+
 }
 
 

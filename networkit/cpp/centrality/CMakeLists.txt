@@ -9,9 +9,8 @@ networkit_add_module(centrality
     CoreDecomposition.cpp
     DegreeCentrality.cpp
     DynApproxBetweenness.cpp
-	DynApproxBetweenness2.cpp
-	DynApproxBetweenness2W.cpp
-	DynApproxBetweennessDir.cpp
+	DynApproxBetweennessImpl.cpp
+	DynApproxBetweennessNew.cpp
     DynBetweenness.cpp
     DynBetweennessOneNode.cpp
     DynKatzCentrality.cpp
